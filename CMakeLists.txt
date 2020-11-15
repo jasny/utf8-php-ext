@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.8)
-project(skeleton C)
+project(utf8 C)
 
-add_compile_definitions(HAVE_SKELETON)
+add_compile_definitions(HAVE_UTF8)
 
-set(SOURCE_FILES php_skeleton skeleton.c)
+set(SOURCE_FILES php_utf8 utf8.c utf8_decode.h utf8_encode.h)
 
 execute_process (
         COMMAND php-config --include-dir

@@ -1,5 +1,5 @@
 env:
-  EXTNAME: skeleton
+  EXTNAME: utf8
 
 language: php
 php:
@@ -44,7 +44,7 @@ before_deploy:
 deploy:
   provider: releases
   auth_token:
-    secure: <your encrypted token>
+    secure: "ZQtHrGfCkMi9I85e6Ha9rGc9SVf61LK+NJG3LvB2kmrD7OWseM6ou9ehx6I+4z/ZhYldmZmkU3F237wj8d0b/ti0KhokUkSkuF4Ov9vIWvU6UwREGNBJvKdkUdOSnabozOWYn+gLacstrNCmMvHPJ63QTABdFTc4W+9Wr8VWmsh9kyL8yODe7LmOhbZ0Pv/q07rzjZA3NoQ+duLSoG2EyPSGQVjPrWD8balGefzTZpDGac4FX0oBNbEH/SgnJ2FgxxqNTpXrdIIx6snMWaa4yNKxpdZ/jggJx+xCPuNtVc0OfLCyfqrfCKj1DPPaOFcUd3/Fb2esZUYyLGV7wbwGbQhMtPey9ZbvMw2wv1ZMuoJ7Q7/qA8ZmX7AH5ULCIuogyHEIWmcU1gntBEcJoUIohQK9Vhqr7TfKD7eHMf7+YFiVbgTdSQ0cMeuXug2XFRw5eExUk0VuBzQ8SntUBjQal80ygBIAYXeUWqbYIj+/mvdVCahgQu3e50S4klzZRs5nUXd1MWw44vAT+Ka29jOve3yYxz/SIJrpqdQsVvKFZKu1+nueUAWr6T7SCHVGOQASB8s7HMUGGSwa42F/YOkNJ/BscrLOXT9E1JPTMyphso/Vfx/AaTh47/KEgXyPZofIIQYz2R2rjrSIip8NNXU+NZ4wgNmCk5R2+Kwy8uYqCj4="
   file: "$RELEASE_PACKAGE"
   skip_cleanup: true
   name: "$TRAVIS_TAG"

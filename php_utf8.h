@@ -1,8 +1,8 @@
 /*
   +----------------------------------------------------------------------+
-  | Skeleton PHP extension                                               |
+  | UTF-8 string functions (PHP extension)                               |
   +----------------------------------------------------------------------+
-  | Copyright (c) 2018 NAME                                              |
+  | Copyright (c) 2020 Arnold Daniels                                    |
   +----------------------------------------------------------------------+
   | Permission is hereby granted, free of charge, to any person          |
   | obtaining a copy of this software and associated documentation files |
@@ -24,28 +24,32 @@
   | CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE     |
   | SOFTWARE.                                                            |
   +----------------------------------------------------------------------+
-  | Author: NAME <EMAIL@EXAMPLE.COM>                                     |
+  | Author: Arnold Daniels <arnold@jasny.net>                            |
   +----------------------------------------------------------------------+
 */
 
-#ifndef PHP_SKELETON_H
-#define PHP_SKELETON_H 1
+#ifndef PHP_UTF8_H
+#define PHP_UTF8_H 1
 
-#define PHP_SKELETON_VERSION "0.0.1-dev"
-#define PHP_SKELETON_EXTNAME "skeleton"
+#define PHP_UTF8_VERSION "0.0.1-dev"
+#define PHP_UTF8_EXTNAME "utf8"
 
 #ifdef PHP_WIN32
-# define PHP_SKELETON_API __declspec(dllexport)
+# define PHP_UTF8_API __declspec(dllexport)
 #elif defined(__GNUC__) && __GNUC__ >= 4
-# define PHP_SKELETON_API __attribute__ ((visibility("default")))
+# define PHP_UTF8_API __attribute__ ((visibility("default")))
 #else
-# define PHP_SKELETON_API
+# define PHP_UTF8_API
 #endif
 
 /* Declare all functions and classes of the extension */
-static PHP_FUNCTION(skeleton_nop);
+static PHP_FUNCTION(utf8_strlen);
+static PHP_FUNCTION(utf8_strpos);
+static PHP_FUNCTION(utf8_substr);
+static PHP_FUNCTION(utf8_ord);
+static PHP_FUNCTION(utf8_chr);
 
-extern zend_module_entry skeleton_module_entry;
+extern zend_module_entry utf8_module_entry;
 
 #endif
 

@@ -7,7 +7,7 @@ branches:
   - w32
 
 environment:
-  EXTNAME: skeleton
+  EXTNAME: utf8
 
   matrix:
     - PHP_VERSION: 7.2
@@ -113,7 +113,7 @@ deploy:
   description: 'v$(appveyor_build_version)'
   provider: GitHub
   auth_token:
-    secure: <your encrypted token>
+    secure: e+dbSm8mD9dEwawgjxvIwEWanzJJTsADVGTyfyecoQ9PKS/1iYkY6IXDv9jI8/Hq
   artifact: '$(RELEASE_ZIPBALL).zip'
   draft: false
   prerelease: true
