@@ -3,7 +3,7 @@ project(utf8 C)
 
 add_compile_definitions(HAVE_UTF8)
 
-set(SOURCE_FILES php_utf8 utf8.c utf8_decode.h utf8_encode.h)
+set(SOURCE_FILES php_utf8 utf8.c utf8_decode.h utf8_encode.h utf8_func.c utf8_func.h)
 
 execute_process (
         COMMAND php-config --include-dir

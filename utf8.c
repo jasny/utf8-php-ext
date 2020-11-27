@@ -34,8 +34,7 @@
 
 #include "php.h"
 #include "php_utf8.h"
-#include "utf8_decode.h"
-#include "utf8_encode.h"
+#include "utf8_func.h"
 #include "zend_exceptions.h"
 
 #if HAVE_UTF8
@@ -72,72 +71,13 @@ zend_module_entry utf8_module_entry = {
 ZEND_GET_MODULE(utf8)
 #endif
 
-static size_t utf8_byte_pos(char *str, size_t len, char *substr, size_t sublen)
-{
-    char *ptr;
-    size_t count = -1;
-
-    ptr = substr;
-
-    for (size_t i = 0; i < len; i++, ++str) {
-        if (*str != *ptr) {
-            ptr = substr;
-        } else {
-            ptr++;
-
-            if (ptr - substr == sublen) {
-                break;
-            }
-        }
-
-        count += ((*str & 0b11000000) != 0b10000000); // Don't count secondary bytes of multibyte chars
-    }
-
-    return count;
-}
-
-static char* utf8_walk(char *str, size_t len, size_t pos)
-{
-    size_t count;
-    size_t bytes;
-
-    for (count = 0, bytes = 0; count < pos; str++, bytes++) {
-        if (bytes > len) {
-            return NULL;
-        }
-        count += ((*str & 0b11000000) != 0b10000000); // Don't count secondary bytes of multibyte chars
-    }
-
-    while ((*str & 0b11000000) == 0b10000000) {
-        str++; // Walk to the end of multibyte char
-        bytes++;
-    }
-
-    return str;
-}
-
-static char* utf8_walk_back(char *str, size_t len, size_t pos)
-{
-    size_t count;
-    size_t bytes;
-
-    for (count = 0, bytes = 0; count > pos; str--, bytes++) {
-        if (bytes > len) {
-            return NULL;
-        }
-        count -= ((*str & 0b11000000) != 0b10000000); // Don't count secondary bytes of multibyte chars
-    }
-
-    return str;
-}
-
 PHP_FUNCTION(utf8_strlen)
 {
     char *str;
     size_t len;
     size_t count = 0;
 
-    ZEND_PARSE_PARAMETERS_START_EX(ZEND_PARSE_PARAMS_THROW, 1, 1)
+    ZEND_PARSE_PARAMETERS_START(1, 1)
         Z_PARAM_STRING(str, len)
     ZEND_PARSE_PARAMETERS_END();
 
@@ -152,13 +92,20 @@ PHP_FUNCTION(utf8_strpos)
 {
     char *str, *substr;
     size_t len, sublen;
+    zend_long pos;
 
-    ZEND_PARSE_PARAMETERS_START_EX(ZEND_PARSE_PARAMS_THROW, 2, 2)
+    ZEND_PARSE_PARAMETERS_START(2, 2)
         Z_PARAM_STRING(str, len)
         Z_PARAM_STRING(substr, sublen)
     ZEND_PARSE_PARAMETERS_END();
 
-    RETURN_LONG(utf8_byte_pos(str, len, substr, sublen))
+    pos = utf8_pos(str, len, substr, sublen);
+
+    if (pos < 0) {
+        RETURN_FALSE
+    }
+
+    RETURN_LONG(pos)
 }
 
 PHP_FUNCTION(utf8_substr)
@@ -167,16 +114,25 @@ PHP_FUNCTION(utf8_substr)
     size_t len, len_start;
     zend_long start = 0;
     zend_long length = 0;
-    zend_string *result;
 
-    ZEND_PARSE_PARAMETERS_START_EX(ZEND_PARSE_PARAMS_THROW, 2, 3)
+    ZEND_PARSE_PARAMETERS_START(2, 3)
         Z_PARAM_STRING(str, len)
         Z_PARAM_LONG(start)
         Z_PARAM_OPTIONAL
         Z_PARAM_LONG(length)
     ZEND_PARSE_PARAMETERS_END();
 
-    str_start = utf8_walk(str, len, start);
+    if (labs(start) > len) {
+        RETURN_FALSE // Quick return
+    }
+
+    if (start == 0) {
+        str_start = str;
+    } else if (start > 0) {
+        str_start = utf8_walk(str, len, start);
+    } else {
+        str_start = utf8_walk_back(str, len, start);
+    }
     if (str_start == NULL) {
         RETURN_FALSE
     }
@@ -190,10 +146,10 @@ PHP_FUNCTION(utf8_substr)
         RETURN_EMPTY_STRING()
     }
 
-    if (length < 0) {
-        str_end = utf8_walk_back(str_start, len_start, length);
-    } else {
+    if (length > 0) {
         str_end = utf8_walk(str_start, len_start, length);
+    } else {
+        str_end = utf8_walk_back(str_start, len_start, length);
     }
 
     if (str_end == NULL) {
@@ -210,7 +166,7 @@ PHP_FUNCTION(utf8_ord)
     uint32_t codepoint;
     uint32_t state = 0;
 
-    ZEND_PARSE_PARAMETERS_START_EX(ZEND_PARSE_PARAMS_THROW, 1, 1)
+    ZEND_PARSE_PARAMETERS_START(1, 1)
         Z_PARAM_STRING(str, len)
     ZEND_PARSE_PARAMETERS_END();
 
@@ -229,7 +185,7 @@ PHP_FUNCTION(utf8_chr)
     size_t len;
     zend_long codepoint;
 
-    ZEND_PARSE_PARAMETERS_START_EX(ZEND_PARSE_PARAMS_THROW, 1, 1)
+    ZEND_PARSE_PARAMETERS_START(1, 1)
         Z_PARAM_LONG(codepoint)
     ZEND_PARSE_PARAMETERS_END();
 

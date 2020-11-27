@@ -1,9 +1,12 @@
 --TEST--
-utf8_strlen basic test
+utf8_strlen
 --FILE--
 <?php
-var_dump(strlen("UTF-8 😀"));
-var_dump(utf8_strlen("UTF-8 😀"));
-
+var_dump(strlen("1234567"));
+var_dump(strlen("😀2😁4😂6😈"));
+var_dump(utf8_strlen("😀2😁4😂6😈"));
 ?>
 --EXPECT--
+int(7)
+int(19)
+int(7)
