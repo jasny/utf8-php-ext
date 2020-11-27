@@ -4,7 +4,7 @@
 ARG_ENABLE("utf8", "enable utf8", "no");
 
 if (PHP_SKELETON != "no") {
-	EXTENSION("utf8", "utf8.c");
+	EXTENSION("utf8", "utf8.c" "utf8_func.c");
 	AC_DEFINE('HAVE_UTF8', 1 , 'whether utf8 is enabled');
 	PHP_INSTALL_HEADERS("ext/utf8/", "php_utf8.h");
 }
