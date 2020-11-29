@@ -48,6 +48,9 @@ static PHP_FUNCTION(utf8_strpos);
 static PHP_FUNCTION(utf8_substr);
 static PHP_FUNCTION(utf8_ord);
 static PHP_FUNCTION(utf8_chr);
+static PHP_FUNCTION(utf8_trim);
+static PHP_FUNCTION(utf8_ltrim);
+static PHP_FUNCTION(utf8_rtrim);
 
 extern zend_module_entry utf8_module_entry;
 

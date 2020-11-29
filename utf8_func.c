@@ -32,12 +32,10 @@
 
 zend_long utf8_pos(char *str, size_t len, char *substr, size_t sublen)
 {
-    char *ptr;
+    char *ptr = substr;
     size_t count = -1;
 
-    ptr = substr;
-
-    for (size_t i = 0; i < len; i++, ++str) {
+    for (size_t i = 0; i < len; i++, str++) {
         if (EXPECTED(*str != *ptr)) {
             ptr = substr;
         } else {
@@ -48,7 +46,7 @@ zend_long utf8_pos(char *str, size_t len, char *substr, size_t sublen)
             }
         }
 
-        count += ((*str & 0b11000000) != 0b10000000); // Don't count secondary bytes of multibyte chars
+        count += IS_NOT_MB_CHAR(*str); // Don't count secondary bytes of multibyte chars
     }
 
     return -1;
@@ -63,17 +61,17 @@ char* utf8_walk(char *str, size_t len, size_t pos)
         if (bytes > len) {
             return NULL;
         }
-        count += ((*str & 0b11000000) != 0b10000000); // Don't count secondary bytes of multibyte chars
+        count += IS_NOT_MB_CHAR(*str); // Don't count secondary bytes of multibyte chars
     }
 
-    while ((*str & 0b11000000) == 0b10000000) {
+    while (IS_MB_CHAR(*str)) {
         str++; // Walk to the end of multibyte char
     }
 
     return str;
 }
 
-char* utf8_walk_back(char *str, size_t len, zend_long pos)
+char* utf8_rwalk(char *str, size_t len, zend_long pos)
 {
     zend_long count;
     size_t bytes;
@@ -84,11 +82,55 @@ char* utf8_walk_back(char *str, size_t len, zend_long pos)
         if (bytes > len) {
             return NULL;
         }
-        count -= ((*str & 0b11000000) != 0b10000000); // Don't count secondary bytes of multibyte chars
+        count -= IS_NOT_MB_CHAR(*str); // Don't count secondary bytes of multibyte chars
     }
 
-    while ((*str & 0b11000000) == 0b10000000) {
+    while (IS_MB_CHAR(*str)) {
         str--; // Walk to the beginning of multibyte char
+    }
+
+    return str;
+}
+
+static zend_always_inline uint8_t match_chars(char *str, char *str_end, char *chars, size_t charslen)
+{
+    for (size_t j = 0; j < charslen; j++) {
+        if (IS_NOT_MB_CHAR(chars[j]) && UTF8_CHAR_EQ(str, str_end, (chars + j), chars + charslen)) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+char* utf8_skip_chars(char *str, size_t len, char *chars, size_t charslen)
+{
+    char *str_end = str + len;
+
+    for (size_t i = 0; i < len; i++, str++) {
+        if (IS_NOT_MB_CHAR(*str) && !match_chars(str, str_end, chars, charslen)) {
+            break;
+        }
+    }
+
+    return str;
+}
+
+char* utf8_rskip_chars(char *str, size_t len, char *chars, size_t charslen)
+{
+    char *str_end = str + len;
+    str += (len - 1); // jump to the end of the string
+
+    for (size_t i = 0; i < len; i++, str--) {
+        if (IS_NOT_MB_CHAR(*str) && !match_chars(str, str_end, chars, charslen)) {
+            break;
+        }
+    }
+
+    str++;
+
+    while (IS_MB_CHAR(*str)) {
+        str++; // Walk to the end of multibyte char
     }
 
     return str;

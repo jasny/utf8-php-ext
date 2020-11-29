@@ -51,6 +51,9 @@ static const zend_function_entry functions[] = {
     PHP_FE(utf8_substr, NULL)
     PHP_FE(utf8_ord, NULL)
     PHP_FE(utf8_chr, NULL)
+    PHP_FE(utf8_trim, NULL)
+    PHP_FE(utf8_ltrim, NULL)
+    PHP_FE(utf8_rtrim, NULL)
     PHP_FE_END
 };
 
@@ -131,7 +134,7 @@ PHP_FUNCTION(utf8_substr)
     } else if (start > 0) {
         str_start = utf8_walk(str, len, start);
     } else {
-        str_start = utf8_walk_back(str, len, start);
+        str_start = utf8_rwalk(str, len, start);
     }
     if (str_start == NULL) {
         RETURN_FALSE
@@ -149,7 +152,7 @@ PHP_FUNCTION(utf8_substr)
     if (length > 0) {
         str_end = utf8_walk(str_start, len_start, length);
     } else {
-        str_end = utf8_walk_back(str_start, len_start, length);
+        str_end = utf8_rwalk(str_start, len_start, length);
     }
 
     if (str_end == NULL) {
@@ -192,6 +195,60 @@ PHP_FUNCTION(utf8_chr)
     len = utf8_encode(str, codepoint);
 
     RETURN_STRINGL(str, len)
+}
+
+PHP_FUNCTION(utf8_trim)
+{
+    char *str, *chars, *str_start, *str_end;
+    size_t len, charslen;
+
+    ZEND_PARSE_PARAMETERS_START(1, 2)
+        Z_PARAM_STRING(str, len)
+        Z_PARAM_OPTIONAL
+        Z_PARAM_STRING(chars, charslen)
+    ZEND_PARSE_PARAMETERS_END();
+
+    str_start = utf8_skip_chars(str, len, chars, charslen);
+
+    if (str_start == str + len) {
+        RETURN_EMPTY_STRING()
+    }
+
+    str_end = utf8_rskip_chars(str, len, chars, charslen);
+
+    RETURN_STRINGL(str_start, (str_end - str_start))
+}
+
+PHP_FUNCTION(utf8_ltrim)
+{
+    char *str, *chars, *str_start;
+    size_t len, charslen;
+
+    ZEND_PARSE_PARAMETERS_START(1, 2)
+        Z_PARAM_STRING(str, len)
+        Z_PARAM_OPTIONAL
+        Z_PARAM_STRING(chars, charslen)
+    ZEND_PARSE_PARAMETERS_END();
+
+    str_start = utf8_skip_chars(str, len, chars, charslen);
+
+    RETURN_STRINGL(str_start, len - (str_start - str));
+}
+
+PHP_FUNCTION(utf8_rtrim)
+{
+    char *str, *chars, *str_end;
+    size_t len, charslen;
+
+    ZEND_PARSE_PARAMETERS_START(1, 2)
+        Z_PARAM_STRING(str, len)
+        Z_PARAM_OPTIONAL
+        Z_PARAM_STRING(chars, charslen)
+    ZEND_PARSE_PARAMETERS_END();
+
+    str_end = utf8_rskip_chars(str, len, chars, charslen);
+
+    RETURN_STRINGL(str, (str_end - str));
 }
 
 #endif
