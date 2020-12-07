@@ -39,6 +39,10 @@
 
 #if HAVE_UTF8
 
+#define STR_PAD_LEFT   0
+#define STR_PAD_RIGHT  1
+#define STR_PAD_BOTH   2
+
 /* Argument info for each function, used for reflection */
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_utf8_strlen, 0, 1, IS_LONG, 0)
     ZEND_ARG_TYPE_INFO(0, str, IS_STRING, 1)
@@ -54,6 +58,7 @@ static const zend_function_entry functions[] = {
     PHP_FE(utf8_trim, NULL)
     PHP_FE(utf8_ltrim, NULL)
     PHP_FE(utf8_rtrim, NULL)
+    PHP_FE(utf8_str_pad, NULL)
     PHP_FE_END
 };
 
@@ -78,17 +83,12 @@ PHP_FUNCTION(utf8_strlen)
 {
     char *str;
     size_t len;
-    size_t count = 0;
 
     ZEND_PARSE_PARAMETERS_START(1, 1)
         Z_PARAM_STRING(str, len)
     ZEND_PARSE_PARAMETERS_END();
 
-    for (size_t i = 0; i < len; i++, ++str) {
-        count += ((*str & 0b11000000) != 0b10000000); // Don't count secondary bytes of multibyte chars
-    }
-
-    RETURN_LONG(count)
+    RETURN_LONG(utf8_count(str, len));
 }
 
 PHP_FUNCTION(utf8_strpos)
@@ -105,10 +105,10 @@ PHP_FUNCTION(utf8_strpos)
     pos = utf8_pos(str, len, substr, sublen);
 
     if (pos < 0) {
-        RETURN_FALSE
+        RETURN_FALSE;
     }
 
-    RETURN_LONG(pos)
+    RETURN_LONG(pos);
 }
 
 PHP_FUNCTION(utf8_substr)
@@ -126,7 +126,7 @@ PHP_FUNCTION(utf8_substr)
     ZEND_PARSE_PARAMETERS_END();
 
     if (labs(start) > len) {
-        RETURN_FALSE // Quick return
+        RETURN_FALSE; // Quick return
     }
 
     if (start == 0) {
@@ -137,7 +137,7 @@ PHP_FUNCTION(utf8_substr)
         str_start = utf8_rwalk(str, len, start);
     }
     if (str_start == NULL) {
-        RETURN_FALSE
+        RETURN_FALSE;
     }
     len_start = len - (str_start - str);
 
@@ -146,7 +146,7 @@ PHP_FUNCTION(utf8_substr)
     }
 
     if (length == 0) {
-        RETURN_EMPTY_STRING()
+        RETURN_EMPTY_STRING();
     }
 
     if (length > 0) {
@@ -156,10 +156,10 @@ PHP_FUNCTION(utf8_substr)
     }
 
     if (str_end == NULL) {
-        RETURN_FALSE
+        RETURN_FALSE;
     }
 
-    RETURN_STRINGL(str_start, (str_end - str_start))
+    RETURN_STRINGL(str_start, (str_end - str_start));
 }
 
 PHP_FUNCTION(utf8_ord)
@@ -175,16 +175,16 @@ PHP_FUNCTION(utf8_ord)
 
     for (size_t i = 0; i < len; i++, str++) {
         if (utf8_decode(&state, &codepoint, *str) == UTF8_ACCEPT) {
-            RETURN_LONG(codepoint)
+            RETURN_LONG(codepoint);
         }
     }
 
-    RETURN_LONG(-1)
+    RETURN_LONG(-1);
 }
 
 PHP_FUNCTION(utf8_chr)
 {
-    char str[4];
+    char str[5];
     size_t len;
     zend_long codepoint;
 
@@ -194,7 +194,7 @@ PHP_FUNCTION(utf8_chr)
 
     len = utf8_encode(str, codepoint);
 
-    RETURN_STRINGL(str, len)
+    RETURN_STRINGL(str, len);
 }
 
 PHP_FUNCTION(utf8_trim)
@@ -216,7 +216,7 @@ PHP_FUNCTION(utf8_trim)
 
     str_end = utf8_rskip_chars(str, len, chars, charslen);
 
-    RETURN_STRINGL(str_start, (str_end - str_start))
+    RETURN_STRINGL(str_start, (str_end - str_start));
 }
 
 PHP_FUNCTION(utf8_ltrim)
@@ -249,6 +249,84 @@ PHP_FUNCTION(utf8_rtrim)
     str_end = utf8_rskip_chars(str, len, chars, charslen);
 
     RETURN_STRINGL(str, (str_end - str));
+}
+
+PHP_FUNCTION(utf8_str_pad)
+{
+    zend_string *input;
+    zend_long pad_length, count;
+
+    size_t num_pad_chars;
+    char *pad_str = " ";
+    size_t pad_str_len = 1;
+    zend_long pad_type_val = STR_PAD_RIGHT;
+    size_t left_pad = 0, right_pad = 0;
+    zend_string *result = NULL;
+
+    ZEND_PARSE_PARAMETERS_START(2, 4)
+        Z_PARAM_STR(input)
+        Z_PARAM_LONG(pad_length)
+        Z_PARAM_OPTIONAL
+        Z_PARAM_STRING(pad_str, pad_str_len)
+        Z_PARAM_LONG(pad_type_val)
+    ZEND_PARSE_PARAMETERS_END();
+
+    count = utf8_count(ZSTR_VAL(input), ZSTR_LEN(input));
+
+    if (pad_length < 0  || (size_t)pad_length <= count) {
+        RETURN_STR_COPY(input);
+    }
+
+    if (pad_str_len == 0) {
+        php_error_docref(NULL, E_WARNING, "Padding string cannot be empty");
+        return;
+    }
+
+    if (pad_type_val < STR_PAD_LEFT || pad_type_val > STR_PAD_BOTH) {
+        php_error_docref(NULL, E_WARNING, "Padding type has to be STR_PAD_LEFT, STR_PAD_RIGHT, or STR_PAD_BOTH");
+        return;
+    }
+
+    num_pad_chars = (pad_length - count);
+    if (num_pad_chars >= INT_MAX) {
+        php_error_docref(NULL, E_WARNING, "Padding length is too long");
+        return;
+    }
+
+    result = zend_string_safe_alloc(1, ZSTR_LEN(input), num_pad_chars * MIN(pad_str_len, 4), 0);
+    ZSTR_LEN(result) = 0;
+
+    switch (pad_type_val) {
+        case STR_PAD_RIGHT:
+            left_pad = 0;
+            right_pad = num_pad_chars;
+            break;
+
+        case STR_PAD_LEFT:
+            left_pad = num_pad_chars;
+            right_pad = 0;
+            break;
+
+        case STR_PAD_BOTH:
+            left_pad = num_pad_chars / 2;
+            right_pad = num_pad_chars - left_pad;
+            break;
+    }
+
+    if (left_pad > 0) {
+        utf8_repeat(&result, pad_str, pad_str_len, left_pad);
+    }
+
+    memcpy(ZSTR_VAL(result) + ZSTR_LEN(result), ZSTR_VAL(input), ZSTR_LEN(input));
+    ZSTR_LEN(result) += ZSTR_LEN(input);
+
+    if (right_pad > 0) {
+        utf8_repeat(&result, pad_str, pad_str_len, right_pad);
+    }
+
+    ZSTR_VAL(result)[ZSTR_LEN(result)] = '\0';
+
+    RETURN_NEW_STR(result);
 }
 
 #endif

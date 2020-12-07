@@ -43,11 +43,13 @@
             (str + 2 <= str_end && chars[2] == str[2]) && (chars + 3 > chars_end || IS_NOT_MB_CHAR(chars[3]) || \
                 (str + 3 <= str_end && chars[3] == str[3])))))
 
-zend_long utf8_pos(char *str, size_t len, char *substr, size_t sublen);
+size_t utf8_count(char *str, size_t len);
+size_t utf8_pos(char *str, size_t len, char *substr, size_t sublen);
 char* utf8_walk(char *str, size_t len, size_t pos);
 char* utf8_rwalk(char *str, size_t len, zend_long pos);
 char* utf8_skip_chars(char *str, size_t len, char *chars, size_t charslen);
 char* utf8_rskip_chars(char *str, size_t len, char *chars, size_t charslen);
+void utf8_repeat(zend_string **result, char *pad_str, size_t pad_str_len, size_t length);
 uint8_t utf8_encode(char *out, uint32_t utf);
 
 #endif //UTF8_FUNC_H

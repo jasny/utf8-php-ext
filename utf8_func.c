@@ -29,8 +29,20 @@
 */
 
 #include "utf8_func.h"
+#include "zend_string.h"
 
-zend_long utf8_pos(char *str, size_t len, char *substr, size_t sublen)
+size_t utf8_count(char *str, size_t len)
+{
+    size_t count = 0;
+
+    for (size_t i = 0; i < len; i++, ++str) {
+        count += IS_NOT_MB_CHAR(*str); // Don't count secondary bytes of multibyte chars
+    }
+
+    return count;
+}
+
+size_t utf8_pos(char *str, size_t len, char *substr, size_t sublen)
 {
     char *ptr = substr;
     size_t count = -1;
@@ -136,6 +148,22 @@ char* utf8_rskip_chars(char *str, size_t len, char *chars, size_t charslen)
     return str;
 }
 
+void utf8_repeat(zend_string **result, char *pad_str, size_t pad_str_len, size_t length)
+{
+    char *ptr = pad_str;
+    size_t i;
+
+    for (i = 0; i < length; i++) {
+        do {
+            ZSTR_VAL(*result)[ZSTR_LEN(*result)++] = *ptr;
+        } while (ptr < pad_str + pad_str_len && IS_MB_CHAR(*(++ptr)));
+
+        if (ptr == pad_str + pad_str_len) {
+            ptr = pad_str;
+        }
+    }
+}
+
 /**
  * Encode a code point using UTF-8.
  * (produces U+FFFD on failure)
@@ -153,17 +181,20 @@ uint8_t utf8_encode(char *out, uint32_t utf)
     if (utf <= 0x7F) {
         // Plain ASCII
         out[0] = (char) utf;
+        out[1] = '\0';
         return 1;
     } else if (utf <= 0x07FF) {
         // 2-byte unicode
         out[0] = (char) (((utf >> 6) & 0x1F) | 0xC0);
         out[1] = (char) (((utf >> 0) & 0x3F) | 0x80);
+        out[2] = '\0';
         return 2;
     } else if (utf <= 0xFFFF) {
         // 3-byte unicode
         out[0] = (char) (((utf >> 12) & 0x0F) | 0xE0);
         out[1] = (char) (((utf >>  6) & 0x3F) | 0x80);
         out[2] = (char) (((utf >>  0) & 0x3F) | 0x80);
+        out[3] = '\0';
         return 3;
     } else if (utf <= 0x10FFFF) {
         // 4-byte unicode
@@ -171,12 +202,14 @@ uint8_t utf8_encode(char *out, uint32_t utf)
         out[1] = (char) (((utf >> 12) & 0x3F) | 0x80);
         out[2] = (char) (((utf >>  6) & 0x3F) | 0x80);
         out[3] = (char) (((utf >>  0) & 0x3F) | 0x80);
+        out[4] = '\0';
         return 4;
     } else {
         // error - use replacement character
         out[0] = (char) 0xEF;
         out[1] = (char) 0xBF;
         out[2] = (char) 0xBD;
+        out[3] = '\0';
         return 3;
     }
 }
