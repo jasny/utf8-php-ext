@@ -59,6 +59,7 @@ static const zend_function_entry functions[] = {
     PHP_FE(utf8_ltrim, NULL)
     PHP_FE(utf8_rtrim, NULL)
     PHP_FE(utf8_str_pad, NULL)
+    PHP_FE(utf8_strrev, NULL)
     PHP_FE_END
 };
 
@@ -325,6 +326,34 @@ PHP_FUNCTION(utf8_str_pad)
     }
 
     ZSTR_VAL(result)[ZSTR_LEN(result)] = '\0';
+
+    RETURN_NEW_STR(result);
+}
+
+PHP_FUNCTION(utf8_strrev)
+{
+    char *str, *ptr;
+    size_t len;
+    uint8_t i, n;
+    zend_string *result;
+
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+        Z_PARAM_STRING(str, len)
+    ZEND_PARSE_PARAMETERS_END();
+
+    result = zend_string_alloc(len, 0);
+    ptr = result->val + len;
+
+    while (ptr > result->val) {
+        n = utf8_char_len(*str) ?: 1;
+
+        for (i = 0; i < n; i++) {
+            *(ptr - n + i) = *str;
+            str++;
+        }
+
+        ptr -= n;
+    }
 
     RETURN_NEW_STR(result);
 }

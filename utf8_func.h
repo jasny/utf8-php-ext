@@ -30,6 +30,7 @@
 
 #include "php.h"
 #include "utf8_decode.h"
+#include "utf8_charlen.h"
 
 #ifndef UTF8_FUNC_H
 #define UTF8_FUNC_H
