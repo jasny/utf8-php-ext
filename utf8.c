@@ -43,14 +43,8 @@
 #define STR_PAD_RIGHT  1
 #define STR_PAD_BOTH   2
 
-/* Argument info for each function, used for reflection */
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_utf8_strlen, 0, 1, IS_LONG, 0)
-    ZEND_ARG_TYPE_INFO(0, str, IS_STRING, 1)
-ZEND_END_ARG_INFO()
-
-/* Add all functions. (Keep PHP_FE_END as last element) */
 static const zend_function_entry functions[] = {
-    PHP_FE(utf8_strlen, arginfo_utf8_strlen)
+    PHP_FE(utf8_strlen, NULL)
     PHP_FE(utf8_strpos, NULL)
     PHP_FE(utf8_substr, NULL)
     PHP_FE(utf8_ord, NULL)
@@ -60,6 +54,7 @@ static const zend_function_entry functions[] = {
     PHP_FE(utf8_rtrim, NULL)
     PHP_FE(utf8_str_pad, NULL)
     PHP_FE(utf8_strrev, NULL)
+    PHP_FE(utf8_str_split, NULL)
     PHP_FE_END
 };
 
@@ -356,6 +351,45 @@ PHP_FUNCTION(utf8_strrev)
     }
 
     RETURN_NEW_STR(result);
+}
+
+PHP_FUNCTION(utf8_str_split)
+{
+    char *str, *next;
+    size_t len, chunk_len;
+    zend_long split_length = 1;
+    const char *p;
+
+    ZEND_PARSE_PARAMETERS_START(1, 2)
+        Z_PARAM_STRING(str, len)
+        Z_PARAM_OPTIONAL
+        Z_PARAM_LONG(split_length)
+    ZEND_PARSE_PARAMETERS_END();
+
+    if (split_length <= 0) {
+        php_error_docref(NULL, E_WARNING, "The length of each segment must be greater than zero");
+        RETURN_FALSE;
+    }
+
+    if (len == 0) {
+        array_init_size(return_value, 1);
+        add_next_index_stringl(return_value, str, len);
+        return;
+    }
+
+    array_init(return_value);
+
+    do {
+        next = utf8_walk(str, len, split_length);
+        chunk_len = next != NULL && str + len > next ? next - str : len;
+
+        if (len > 0) {
+            add_next_index_stringl(return_value, str, chunk_len);
+        }
+
+        len -= chunk_len;
+        str = next;
+    } while (len > 0);
 }
 
 #endif
